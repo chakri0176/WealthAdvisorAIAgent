@@ -303,7 +303,7 @@ LangGraph's interrupt mechanism pauses the workflow at the review gate. The advi
 **Chakravarthi Boora**
 Applied AI Technical Analyst · Generative & Agentic AI · Wealth & Financial AI
 
-[LinkedIn](https://linkedin.com) · [GitHub](https://github.com)
+[GitHub](https://github.com)
 
 ---
 
