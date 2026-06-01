@@ -4,7 +4,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Gemini
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.1-pro-preview"
+    gemini_model: str = "gemini-2.5-flash"
 
     # LangSmith
     langchain_tracing_v2: bool = False

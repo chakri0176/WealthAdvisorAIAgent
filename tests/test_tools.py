@@ -41,6 +41,16 @@ def test_search_sec_filings():
     print(result[:500])
     print("✅ PASSED")
 
+from agents.supervisor import route_request
+
+def test_supervisor():
+    print("\n--- test_supervisor ---")
+    print(route_request("Analyze the risk of my portfolio with AAPL and MSFT"))
+    print(route_request("Run a bull and bear scenario for my portfolio"))
+    print(route_request("Draft a client summary for John Smith"))
+    print("✅ PASSED")
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("Running WealthAdvisor Tools Tests")
@@ -51,7 +61,8 @@ if __name__ == "__main__":
     test_analyze_portfolio()
     test_index_sec_filing()
     test_search_sec_filings()
-
+    test_supervisor()
+    
     print("\n" + "=" * 50)
     print("✅ All tools tests passed!")
     print("=" * 50)
