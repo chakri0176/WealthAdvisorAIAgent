@@ -47,7 +47,7 @@ def search_sec_filings(query_text: str)->str:
     Input is a natural language question like: 'What are Apple's main risk factors?'
     """
     results = query(query_text,n_results=5)
-    if not result:
+    if not results:
         return "No relevant SEC filing content found."
     output = []
     for i, result in enumerate(results):
@@ -58,3 +58,27 @@ def search_sec_filings(query_text: str)->str:
         
         output.append(f"[Result {i+1}] {ticker} | {form_type} | {filing_date}\n{text_preview}")
     return "\n\n---\n\n".join(output)
+
+@tool
+def index_sec_filing(ticker: str)->str:
+    """
+    Download and index the latest 10-K SEC filing for a given ticker.
+    Call this before searching SEC filings for a company.
+    Input is a ticker symbol like: 'AAPL'
+    Returns confirmation of how many chunks were indexed.
+    """
+    filings = get_recent_filings(ticker,form_type="10-K",count=1)
+    if not filings:
+        return f"No filings found for {ticker}"
+    filing = filings[0]
+    text = fetch_filing_text(filing["accessionNumber"],ticker)
+    chunks = index_document(
+        text = text,
+        doc_id = f"{ticker}_10K_{filing['filingDate']}",
+        metadata = {
+            "ticker": ticker,
+            "form_type": "10-K",
+            "filing_date": filing["filingDate"]
+        }
+    )
+    return f"Indexed {chunks} chunks for {ticker} 10-K filed on {filing['filingDate']}"
