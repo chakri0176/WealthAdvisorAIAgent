@@ -80,7 +80,7 @@ User Input (Portfolio Holdings)
 | Layer | Technology | Why |
 |-------|-----------|-----|
 | **Agent Orchestration** | LangGraph 1.1.0 | Best-in-class for stateful, multi-agent financial workflows with human-in-the-loop |
-| **LLM** | Gemini 3.1 Pro | 2M token context window — reads entire SEC filings; strong financial reasoning |
+| **LLM** | Gemini 3.1 Pro | 1M token context window — reads entire SEC filings; strong financial reasoning |
 | **Vector Database** | ChromaDB | Local, fast semantic search over SEC filing chunks |
 | **Embeddings** | Gemini Embedding 001 | High-quality financial text embeddings |
 | **Market Data** | yfinance | Live stock prices, beta, PE ratios, sector data |
