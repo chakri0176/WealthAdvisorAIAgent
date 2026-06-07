@@ -63,6 +63,20 @@ def test_risk_assessor():
     print(result)
     print("✅ PASSED")
 
+from agents.financial_planner import run_financial_planning
+
+def test_financial_planner():
+    print("\n--- test_financial_planner ---")
+    request = """
+    Run a scenario analysis for this portfolio:
+    - AAPL: 40% weight, 100 shares
+    - MSFT: 60% weight, 50 shares
+    Total portfolio value: approximately $51,734
+    """
+    result = run_financial_planning(request)
+    print(result)
+    print("✅ PASSED")
+
 if __name__ == "__main__":
     print("=" * 50)
     print("Running WealthAdvisor Tools Tests")
@@ -75,6 +89,7 @@ if __name__ == "__main__":
     test_search_sec_filings()
     test_supervisor()
     test_risk_assessor()
+    test_financial_planner()
     
     print("\n" + "=" * 50)
     print("✅ All tools tests passed!")
