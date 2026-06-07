@@ -49,7 +49,19 @@ def test_supervisor():
     print(route_request("Run a bull and bear scenario for my portfolio"))
     print(route_request("Draft a client summary for John Smith"))
     print("✅ PASSED")
+    
+from agents.risk_assessor import run_risk_assessment
 
+def test_risk_assessor():
+    print("\n--- test_risk_assessor ---")
+    portfolio = """
+    My portfolio:
+    - AAPL: 40% weight, 100 shares
+    - MSFT: 60% weight, 50 shares
+    """
+    result = run_risk_assessment(portfolio)
+    print(result)
+    print("✅ PASSED")
 
 if __name__ == "__main__":
     print("=" * 50)
@@ -62,7 +74,11 @@ if __name__ == "__main__":
     test_index_sec_filing()
     test_search_sec_filings()
     test_supervisor()
+    test_risk_assessor()
     
     print("\n" + "=" * 50)
     print("✅ All tools tests passed!")
     print("=" * 50)
+    
+
+    

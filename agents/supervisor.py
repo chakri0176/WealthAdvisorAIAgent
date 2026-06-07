@@ -1,13 +1,13 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from config.settings import get_settings
 
 settings = get_settings()
 
 def get_llm():
-    return ChatGoogleGenerativeAI(
-        model=settings.gemini_model,
-        google_api_key=settings.gemini_api_key,
+    return ChatGroq(
+        model=settings.groq_model,
+        api_key=settings.groq_api_key,
         temperature=0
     )
 

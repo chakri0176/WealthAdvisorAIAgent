@@ -2,6 +2,7 @@ import requests
 import time
 from config.settings import get_settings
 import json
+from bs4 import BeautifulSoup
 
 settings = get_settings()
 
@@ -44,5 +45,15 @@ def fetch_filing_text(accession_number: str,ticker: str,max_chars: int = 50000)-
     url = f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{acc_clean}/{accession_number}.txt"
     headers = {"User-Agent": settings.sec_user_agent}
     response = requests.get(url,headers=headers)
-    return response.text[:max_chars]
+    text = response.text
+    # Strip HTML tags
+    soup = BeautifulSoup(text, "html.parser")
+    clean_text = soup.get_text(separator=" ", strip=True)
+    # Skip to Item 1 where readable content starts
+    start = clean_text.find("ITEM 1.")
+    if start == -1:
+        start = clean_text.find("Item 1.")
+    if start == -1:
+        start = 0
+    return clean_text[start:start + max_chars]
     

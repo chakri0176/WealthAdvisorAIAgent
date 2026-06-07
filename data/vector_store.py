@@ -2,14 +2,14 @@ import chromadb
 from chromadb.utils import embedding_functions
 from config.settings import get_settings
 import os
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 load_dotenv()
 
 settings = get_settings()
 
-os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
-os.environ["GEMINI_MODEL"] = settings.gemini_model
+os.environ["GROQ_API_KEY"] = settings.groq_api_key
+os.environ["GROQ_MODEL"] = settings.groq_model
 
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200)->list:
@@ -22,9 +22,8 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200)->list:
     return chunks
 
 def get_embeddings():
-    return GoogleGenerativeAIEmbeddings(
-        model="gemini-embedding-001",
-        google_api_key=settings.gemini_api_key
+    return HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2"
     )
     
 def get_collection():

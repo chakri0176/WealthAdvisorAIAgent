@@ -5,12 +5,16 @@ class Settings(BaseSettings):
     # Gemini
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
+    
+    #Groq
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
 
     # LangSmith
     langchain_tracing_v2: bool = False
     langchain_api_key: str = ""
     langchain_project: str = "WealthAdvisorAI"
-
+    
     # App
     app_env: str = "Development"
     log_level: str = "INFO"
