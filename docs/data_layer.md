@@ -9,13 +9,13 @@ The data layer is the foundation of WealthAdvisor AI. It handles all data fetchi
 Think of it as the **research department** of the firm. Before any analyst (agent) can do their job, someone needs to:
 - Pull the latest stock prices
 - Download the company's annual reports
-- Organize that information so it can be searched quickly
+- Clean and organize that information so it can be searched quickly
 
 That's exactly what our 3 data files do.
 
 ---
 
-## 1. market_data.py — Live Market Data
+## 1. market_data.py — Live Market Data ✅
 
 ### What it does
 Fetches real-time and historical financial data for any publicly traded stock using Yahoo Finance.
@@ -25,7 +25,6 @@ Fetches real-time and historical financial data for any publicly traded stock us
 #### `get_key_metrics(ticker: str) -> dict`
 Returns key financial metrics for a single stock.
 
-**Example:**
 ```python
 from data.market_data import get_key_metrics
 result = get_key_metrics("AAPL")
@@ -34,182 +33,155 @@ result = get_key_metrics("AAPL")
 #   "ticker": "AAPL",
 #   "company_name": "Apple Inc.",
 #   "sector": "Technology",
-#   "market_cap": 4565564915712,
-#   "beta": 1.065,
-#   "current_price": 310.85
+#   "market_cap": 4514011676672,
+#   "beta": 1.086,
+#   "current_price": 307.34
 # }
 ```
 
 **What is Beta?**
-Beta measures how much a stock moves relative to the market:
 - Beta = 1.0 → moves exactly with the market
-- Beta > 1.0 → more volatile than market (higher risk)
-- Beta < 1.0 → less volatile than market (lower risk)
-- Apple's beta of 1.065 → slightly more volatile than market
+- Beta > 1.0 → more volatile (higher risk)
+- Beta < 1.0 → less volatile (lower risk)
 
 #### `get_price_history(ticker: str, period: str = "1y") -> DataFrame`
-Returns historical price data as a pandas DataFrame.
-
-**Example:**
-```python
-from data.market_data import get_price_history
-df = get_price_history("AAPL", period="1y")
-# Returns DataFrame with columns: Open, High, Low, Close, Volume
-```
-
-**Period options:** `1d`, `5d`, `1mo`, `3mo`, `6mo`, `1y`, `2y`, `5y`
+Returns historical OHLCV price data as a pandas DataFrame.
 
 #### `calculate_portfolio_metrics(holdings: list) -> dict`
-Analyzes an entire portfolio at once.
-
-**Example:**
-```python
-holdings = [
-    {"ticker": "AAPL", "weight": 0.4, "shares": 100},
-    {"ticker": "MSFT", "weight": 0.35, "shares": 50},
-    {"ticker": "GOOGL", "weight": 0.25, "shares": 30},
-]
-result = calculate_portfolio_metrics(holdings)
-# Returns:
-# {
-#   "holdings": [...metrics per stock...],
-#   "num_positions": 3
-# }
-```
+Analyzes an entire portfolio. Uses try/except so one bad ticker doesn't crash the whole analysis.
 
 ---
 
-## 2. sec_fetcher.py — SEC Filing Data
+## 2. sec_fetcher.py — SEC Filing Data ✅
 
-### What is SEC EDGAR?
-Every public company in the US must file regular financial reports with the SEC (Securities and Exchange Commission). These reports are publicly available on EDGAR (Electronic Data Gathering, Analysis, and Retrieval system).
+### What are SEC Filings?
+Every public US company must file regular reports with the SEC. These are publicly available on EDGAR.
 
-### What are 10-K and 10-Q filings?
+| Filing | Frequency | Key Contents |
+|--------|-----------|-------------|
+| **10-K** | Annual | Risk factors, full financials, business overview |
+| **10-Q** | Quarterly | Shorter update, unaudited |
 
-| Filing | Frequency | Contents |
-|--------|-----------|----------|
-| **10-K** | Annual | Full year financials, risk factors, business overview |
-| **10-Q** | Quarterly | Shorter quarterly update, unaudited |
+The **Risk Factors** section (Item 1A) is gold — companies legally must disclose anything that could hurt their business.
 
-The **Risk Factors** section of a 10-K is particularly valuable — companies are legally required to disclose anything that could negatively impact their business.
+### The HTML Cleaning Problem (and fix)
+
+SEC filings are submitted as HTML/XBRL files. The raw text looks like:
+```html
+<span style="font-family:'Helvetica'">The Company's products may be
+affected by design defects...</span>
+```
+
+We use **BeautifulSoup** to strip all HTML tags, leaving clean text:
+```
+The Company's products may be affected by design defects...
+```
+
+Then we skip to **Item 1** to bypass XBRL headers at the top of each file.
 
 ### Functions
 
 #### `get_cik(ticker: str) -> str`
-Converts a stock ticker to SEC's internal company identifier (CIK).
-
+Converts ticker to SEC CIK number.
 ```python
-from data.sec_fetcher import get_cik
-cik = get_cik("AAPL")
-# Returns: "0000320193"
+get_cik("AAPL")  # → "0000320193"
 ```
 
-Every company has a unique 10-digit CIK. Apple's is 0000320193. We need this to query EDGAR's API.
+#### `get_recent_filings(ticker, form_type="10-K", count=3) -> list`
+Fetches list of recent filings with dates and accession numbers.
 
-#### `get_recent_filings(ticker: str, form_type: str = "10-K", count: int = 3) -> list`
-Fetches a list of recent filings for a company.
-
-```python
-from data.sec_fetcher import get_recent_filings
-filings = get_recent_filings("AAPL", form_type="10-K", count=3)
-# Returns:
-# [
-#   {"ticker": "AAPL", "form": "10-K", "accessionNumber": "0000320193-25-000079", "filingDate": "2025-10-31"},
-#   {"ticker": "AAPL", "form": "10-K", "accessionNumber": "0000320193-24-000123", "filingDate": "2024-11-01"},
-#   {"ticker": "AAPL", "form": "10-K", "accessionNumber": "0000320193-23-000106", "filingDate": "2023-11-03"}
-# ]
-```
-
-#### `fetch_filing_text(accession_number: str, ticker: str, max_chars: int = 50000) -> str`
-Downloads the actual text content of a filing.
+#### `fetch_filing_text(accession_number, ticker, max_chars=50000) -> str`
+Downloads filing, strips HTML with BeautifulSoup, skips to Item 1, returns clean text.
 
 ```python
-from data.sec_fetcher import fetch_filing_text
-text = fetch_filing_text("0000320193-25-000079", "AAPL")
-# Returns first 50,000 characters of Apple's 2025 10-K
+# Pipeline inside fetch_filing_text:
+raw_html = requests.get(sec_url).text
+soup = BeautifulSoup(raw_html, "html.parser")
+clean_text = soup.get_text(separator=" ", strip=True)
+start = clean_text.find("ITEM 1.")  # skip headers
+return clean_text[start:start + 50000]
 ```
-
-**Why 50,000 chars?**
-Full 10-K filings can be 500,000+ characters. We take the first 50K which covers the most important sections (business overview, risk factors). The RAG pipeline then finds the specific relevant parts.
-
-### Rate Limiting
-SEC EDGAR requires a `User-Agent` header and asks developers to limit requests. We add `time.sleep(0.1)` between requests to be a good citizen.
 
 ---
 
-## 3. vector_store.py — Semantic Search
+## 3. vector_store.py — Semantic Search ✅
 
 ### The Problem
-A 10-K filing is 200+ pages. We can't send all of it to an AI agent every time — it would be slow and expensive. We need a way to find only the relevant parts.
+A 10-K filing is 200+ pages. Sending all of it to an AI agent every time would be slow and expensive.
 
-### The Solution: Vector Search
-We convert text into numbers (embeddings) that capture meaning. Similar meaning → similar numbers → easy to find related content.
+### The Solution: Local Vector Search
+
+We use **HuggingFace all-MiniLM-L6-v2** — a small, fast embedding model that runs 100% on your machine. No API calls, no quota limits.
 
 ```
-"Apple faces supply chain risks"  → [0.23, -0.45, 0.12, ...]
-"iPhone manufacturing dependencies" → [0.21, -0.43, 0.14, ...]
-                                      ↑ Very similar numbers!
+"Apple faces supply chain risks"  → [0.23, -0.45, 0.12, ...]  (384 numbers)
+"iPhone manufacturing dependency" → [0.21, -0.43, 0.14, ...]  (very similar!)
 ```
+
+Similar meaning → similar numbers → ChromaDB finds related content instantly.
+
+### Why we switched from Gemini to HuggingFace embeddings
+
+During development, Gemini embedding API hit rate limits when indexing multiple SEC filings (63 chunks × multiple companies = hundreds of API calls). HuggingFace MiniLM:
+- Runs locally — no API calls
+- No quota limits
+- Downloads once (~90MB), cached forever
+- Fast enough for development (5-8 seconds per filing)
 
 ### Functions
 
-#### `chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list`
-Splits a long document into overlapping chunks.
+#### `chunk_text(text, chunk_size=1000, overlap=200) -> list`
+Splits long text into overlapping chunks. Overlap prevents cutting sentences mid-thought.
+
+#### `get_embeddings() -> HuggingFaceEmbeddings`
+Returns the local MiniLM embedding model.
+
+#### `get_collection() -> ChromaDB collection`
+Connects to (or creates) the local ChromaDB database.
+
+#### `index_document(text, doc_id, metadata) -> int`
+Full pipeline: chunk → embed locally → store in ChromaDB.
 
 ```python
-from data.vector_store import chunk_text
-chunks = chunk_text(apple_10k_text)
-# Returns list of ~63 chunks, each 1000 chars
-# Chunks overlap by 200 chars to avoid cutting sentences
+# What happens inside:
+chunks = chunk_text(text)              # split into 63 pieces
+embedder = get_embeddings()            # load MiniLM locally
+embeddings = embedder.embed_documents(chunks)  # 384-dim vectors
+collection.upsert(documents=chunks, embeddings=embeddings, ...)
 ```
 
-**Why overlap?**
-Without overlap, a sentence split across two chunks loses context. With 200-char overlap, each chunk shares content with its neighbors.
-
-#### `get_embeddings()`
-Returns a Gemini embedding model that converts text to vectors.
-
-#### `get_collection()`
-Connects to (or creates) the ChromaDB database on disk.
-
-#### `index_document(text: str, doc_id: str, metadata: dict) -> int`
-Full pipeline: chunk → embed → store.
+#### `query(query_text, n_results=5) -> list`
+Semantic search — finds most relevant chunks for a question.
 
 ```python
-from data.vector_store import index_document
-chunks_stored = index_document(
-    text=apple_filing_text,
-    doc_id="AAPL_10K_2025",
-    metadata={"ticker": "AAPL", "form_type": "10-K", "filing_date": "2025-10-31"}
-)
-# Returns: 63 (number of chunks stored)
+results = query("What are Apple's main risk factors?")
+# Returns:
+# [
+#   {
+#     "text": "The Company's products may be affected by design defects...",
+#     "metadata": {"ticker": "AAPL", "form_type": "10-K", ...},
+#     "distance": 0.234  # lower = more relevant
+#   },
+#   ...
+# ]
 ```
-
-After calling this, a `chroma_db/` folder appears in your project containing the indexed data.
-
-#### `query(query_text: str, n_results: int = 5) -> list`
-Semantic search — finds the most relevant chunks for a question.
-
-```python
-from data.vector_store import query
-results = query("What are Apple's main risk factors?", n_results=5)
-# Returns top 5 most semantically relevant chunks
-# Each result: {"text": "...", "metadata": {...}, "distance": 0.234}
-```
-
-**What is distance?**
-Lower distance = more similar to your query. Results are sorted by distance (most relevant first).
 
 ---
 
 ## Running the Tests
 
 ```bash
+# Data layer
 python tests/test_data_layer.py
+
+# Tools + agents
+python tests/test_tools.py
 ```
 
-All 8 tests should pass:
+### Current Test Results
+
 ```
+test_data_layer.py:
 ✅ test_get_key_metrics
 ✅ test_get_price_history
 ✅ test_calculate_portfolio_metrics
@@ -218,13 +190,25 @@ All 8 tests should pass:
 ✅ test_fetch_filing_text
 ✅ test_chunk_text
 ✅ test_index_and_query
+✅ All 8 tests passed!
+
+test_tools.py:
+✅ test_get_stock_metrics
+✅ test_get_price_data
+✅ test_analyze_portfolio
+✅ test_index_sec_filing
+✅ test_search_sec_filings
+✅ test_supervisor
+✅ test_risk_assessor
+✅ All 7 tests passed!
 ```
 
 ---
 
 ## Important Notes
 
-- **chroma_db/** is gitignored — it's generated locally and can be large
-- **SEC rate limits** — don't make more than 10 requests/second to EDGAR
-- **yfinance** is unofficial — Yahoo Finance can occasionally return empty data for some tickers
-- **Embeddings cost** — each call to Gemini embedding API uses tokens; batch your indexing
+- **chroma_db/** is gitignored — generated locally, can be large
+- **Delete chroma_db/** whenever you change embedding models (dimension mismatch)
+- **SEC rate limits** — we add `time.sleep(0.1)` between requests
+- **yfinance** is unofficial — can occasionally return empty data
+- **MiniLM model** downloads to `~/.cache/huggingface/` on first run
