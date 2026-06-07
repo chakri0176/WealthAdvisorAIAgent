@@ -33,7 +33,7 @@ During development we discovered:
 - **Gemini 2.5 Flash** → free but only 5 RPM — not enough for multi-tool agents
 - **Groq** → free, 100+ RPM, specifically optimized for tool calling
 
-Groq runs LLaMA 3 at extremely high speed (289 tokens/second) — perfect for agents that make multiple tool calls per request.
+Groq runs openai at extremely high speed (8k tokens/minute) — perfect for agents that make multiple tool calls per request.
 
 ---
 
