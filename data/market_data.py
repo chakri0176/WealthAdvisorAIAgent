@@ -15,6 +15,9 @@ def get_key_metrics(ticker: str)->dict:
     
 def get_price_history(ticker: str, period: str = "1y" )->str:
     stock = yf.Ticker(ticker)
+    df = stock.history(period=period)
+    df.index = df.index.tz_localize(None)
+    df = df.dropna()
     return stock.history(period)
 
 def calculate_portfolio_metrics(holdings: list)->dict:

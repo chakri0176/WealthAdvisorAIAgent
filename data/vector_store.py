@@ -43,7 +43,7 @@ def index_document(text: str, doc_id: str, metadata: dict) -> int:
         documents=chunks,
         ids=ids,
         metadatas=metadatas,
-        embeddings=embeddings  # ← pass embeddings explicitly
+        embeddings=embeddings  
     )
     return len(chunks)
     
