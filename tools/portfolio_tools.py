@@ -60,22 +60,28 @@ def search_sec_filings(query_text: str)->str:
     return "\n\n---\n\n".join(output)
 
 @tool
-def index_sec_filing(ticker: str)->str:
+def index_sec_filing(ticker: str) -> str:
     """
     Download and index the latest 10-K SEC filing for a given ticker.
     Call this before searching SEC filings for a company.
-    Input is a ticker symbol like: 'AAPL'
-    Returns confirmation of how many chunks were indexed.
     """
-    filings = get_recent_filings(ticker,form_type="10-K",count=1)
+    from data.vector_store import get_collection
+    collection = get_collection()
+    
+    # Check if already indexed
+    existing = collection.get(where={"ticker": ticker})
+    if existing and len(existing["ids"]) > 0:
+        return f"Filing for {ticker} already indexed ({len(existing['ids'])} chunks) — skipping download."
+    
+    filings = get_recent_filings(ticker, form_type="10-K", count=1)
     if not filings:
         return f"No filings found for {ticker}"
     filing = filings[0]
-    text = fetch_filing_text(filing["accessionNumber"],ticker)
+    text = fetch_filing_text(filing["accessionNumber"], ticker)
     chunks = index_document(
-        text = text,
-        doc_id = f"{ticker}_10K_{filing['filingDate']}",
-        metadata = {
+        text=text,
+        doc_id=f"{ticker}_10K_{filing['filingDate']}",
+        metadata={
             "ticker": ticker,
             "form_type": "10-K",
             "filing_date": filing["filingDate"]

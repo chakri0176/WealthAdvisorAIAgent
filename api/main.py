@@ -66,6 +66,8 @@ def analyze(request: AnalyzeRequest):
             client_summary=state.get("client_summary",""),
         )
     except Exception as e:
+        import traceback
+        print("FULL ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500,detail=str(e))
 
 @app.post("/review", response_model=WorkflowResponse)
