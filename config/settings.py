@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     
     #Groq
     groq_api_key: str = ""
-    groq_model: str = "openai/gpt-oss-120b"
+    groq_model: str = "llama-3.3-70b-versatile"
 
     # LangSmith
     langchain_tracing_v2: bool = False

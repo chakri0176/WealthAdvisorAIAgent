@@ -120,26 +120,28 @@ def reset_session():
     st.session_state.analysis_complete = False
 
 def is_relevant_question(question: str, llm) -> bool:
-    """Check if the question is related to finance/stocks/wealth management."""
+    """Check if the question is related to finance/stocks/wealth management or conversation."""
     from langchain_core.messages import HumanMessage, SystemMessage
     
     check_messages = [
         SystemMessage(content="""You are a strict topic classifier.
-            Your only job is to decide if a question is related to:
-            - Stocks, shares, equities
-            - Portfolio management
-            - Wealth management or financial planning
-            - SEC filings or company financials
-            - Market data, prices, returns
-            - Risk assessment or scenario analysis
-            - Investment advice or strategy
+Respond with ONLY one word: YES or NO.
 
-            Respond with ONLY one word: YES or NO.
-            YES = question is finance/wealth related
-            NO = question is off-topic (politics, sports, general knowledge, etc.)
-            """),
-            HumanMessage(content=question)
-        ]
+Say YES if the question is:
+- Related to stocks, shares, equities, portfolio
+- Related to wealth management or financial planning
+- Related to SEC filings or company financials
+- Related to market data, prices, returns, risk
+- A follow-up to a previous message (e.g. "what did I ask?", "tell me more", "explain that", "what was my question?", "summarize our conversation")
+- A greeting or general conversation starter (e.g. "hello", "hi", "thanks")
+
+Say NO if the question is:
+- About politics, sports, entertainment, or general knowledge
+- Completely unrelated to finance or the current conversation
+- Asking for jokes, stories, or creative writing
+"""),
+        HumanMessage(content=question)
+    ]
     response = llm.invoke(check_messages)
     return response.content.strip().upper().startswith("YES")
 
@@ -479,7 +481,7 @@ with st.form("chat_form", clear_on_submit=True):
                 chat_agent = get_chat_agent()
                 result = chat_agent.invoke({
                     "input": user_input,
-                    "chat_history": st.session_state.chat_history
+                    "chat_history": langchain_history
                 })
                 add_message("agent", result["output"], msg_type="markdown")
 

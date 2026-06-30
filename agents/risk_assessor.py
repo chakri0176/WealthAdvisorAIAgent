@@ -32,6 +32,13 @@ After gathering all data, produce a structured risk report with:
 - Top 3 Risk Factors: specific, data-driven findings
 
 Be precise. Cite your data sources. Never guess — always use the tools.
+
+IMPORTANT: Format your final output using markdown:
+- Use ## headers for each section
+- Use | tables | for metrics
+- Use **bold** for risk scores
+- Never show step-by-step reasoning in the final answer
+- Output ONLY the final structured report
 """
 
 def build_risk_agent()->AgentExecutor:
