@@ -151,8 +151,30 @@ def get_chat_agent():
     from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
     from tools.portfolio_tools import get_stock_metrics, get_price_data
     from config.settings import get_settings
+    from clients.client_memory import load_client_history, get_client_profile
     
     settings = get_settings()
+    
+    profile = get_client_profile(client_id)
+    history = load_client_history(client_id,limit=5)
+    
+    #build history context
+    history_context = ""
+    if history:
+        history_context = """
+        IMPORTANT: The following is CLIENT HISTORY DATA from our database. 
+        Do NOT use any tools on this data. Just read and reference it directly.
+
+        PREVIOUS ANALYSIS SESSIONS:
+        """
+        for h in history:
+            history_context += f"[Session on {h['created_at'][:10]}]: Risk Score was {h['risk_score']}\n"
+        history_context += f"Total past sessions: {len(history)}\n"
+        history_context += "END OF CLIENT HISTORY - Do not call any tools on the above data.\n"
+        
+    profile_context = ""
+    if profile:
+        profile_context = f"Risk Tolerance: {profile['risk_tolerance']}\nGoals: {profile['investment_goals']}\nTime Horizon: {profile['time_horizon']}"
     
     llm = ChatGroq(
         model=settings.groq_model,
@@ -168,12 +190,21 @@ def get_chat_agent():
         You have access to LIVE market data tools — use them when asked about prices or metrics.
         NEVER say you cannot access real-time data. You CAN via your tools.
         Refuse any questions not related to stocks, portfolios, or wealth management.
-        Client: {client_name}
+
+        CLIENT INFORMATION:
+        Name: {client_name}
+        ID: {client_id}
+        {profile_context}
+        
+        {history_context}
+
+        Use this context to give personalized responses. Reference past sessions when relevant.
         """),
         MessagesPlaceholder(variable_name="chat_history", optional=True),
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ])
+
     
     agent = create_tool_calling_agent(llm, tools, prompt)
     return AgentExecutor(
@@ -193,18 +224,19 @@ def add_message(role: str, content: str, msg_type: str = "text"):
 
 def render_chat():
     for msg in st.session_state.chat_history:
+        content = msg["content"].replace("$",r"\$")
         if msg["role"] == "user":
             st.markdown(f'<div class="chat-label-user">You</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="chat-user">{msg["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chat-user">{content}</div>', unsafe_allow_html=True)
         elif msg["role"] == "agent":
             st.markdown(f'<div class="chat-label-agent">🤖 WealthAdvisor</div>', unsafe_allow_html=True)
             if msg.get("type") == "markdown":
                 with st.container():
-                    st.markdown(msg["content"])
+                    st.markdown(content)
             else:
-                st.markdown(f'<div class="chat-agent">{msg["content"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="chat-agent">{content}</div>', unsafe_allow_html=True)
         elif msg["role"] == "system":
-            st.markdown(f'<div class="chat-system">⚙️ {msg["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chat-system">⚙️ {content}</div>', unsafe_allow_html=True)
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:

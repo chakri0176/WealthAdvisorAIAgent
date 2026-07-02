@@ -6,14 +6,16 @@ from typing import Optional
 
 DB_PATH = os.path.join(os.path.dirname(__file__),"wealthadvisor.db")
 
+
 def init_db():
     """Create database tables if they don't exist"""
+    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
     #Client portfolio table
     cursor.execute("""
-        CREATE TAVKE IF NOT EXISTS client_profiles(
+        CREATE TABLE IF NOT EXISTS client_profiles(
             client_id TEXT PRIMARY KEY,
             client_name TEXT,
             risk_tolerance TEXT DEFAULT 'moderate',
@@ -35,7 +37,7 @@ def init_db():
            client_summary TEXT,
            risk_score TEXT,
            created_at TEXT,
-           FOREIGN KEY (client_id) REFEREMCES client_profiles(client_id)
+           FOREIGN KEY (client_id) REFERENCES client_profiles(client_id)
        )            
     """)
     
@@ -64,6 +66,7 @@ def save_client_profile(
     investment_goals: str="",
     time_horizon: str=""
 )->None:
+    """saving the client profile"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
@@ -77,7 +80,7 @@ def save_client_profile(
                        investment_goals,
                        time_horizon,
                        created_at,
-                       updated_at = datetime.now.isoformat()
+                       updated_at
                    )
                    VALUES(?,?,?,?,?,?,?)
                    """,(client_id,client_name,risk_tolerance,investment_goals,time_horizon,now,now))
@@ -95,11 +98,82 @@ def save_analysis_session(
     client_summary: str = "",
     risk_score: str = ""
 )->None:
-    pass 
+    """Saving the analysis_sessions"""
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    now = datetime.now().isoformat()
+    
+    cursor.execute("""
+                INSERT OR REPLACE INTO analysis_sessions(
+                    client_id,
+                    session_id,
+                    portfolio_data,
+                    risk_output,
+                    planning_output,
+                    client_summary,
+                    risk_score,
+                    created_at
+                )
+                VALUES(?,?,?,?,?,?,?,?)
+                   """,(client_id,session_id,portfolio_data,risk_output,planning_output,client_summary,risk_score,now))
+    
+    conn.commit()
+    conn.close()
 
 
 def load_client_history(client_id: str, limit: int=5)-> list:
-    pass
+    """loading the client history by using the client_id"""
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    rows = cursor.execute("""
+                SELECT session_id, portfolio_data, risk_output, planning_output, client_summary, risk_score, created_at 
+                FROM analysis_sessions 
+                WHERE client_id=? 
+                ORDER BY created_at 
+                DESC LIMIT ?
+                   """,(client_id,limit)).fetchall()
+    
+    conn.close()
+    
+    return [
+        {
+            "session_id": row[0],
+            "portfolio_data": row[1],
+            "risk_output": row[2],
+            "planning_output": row[3],
+            "client_summary": row[4],
+            "risk_score": row[5],
+            "created_at": row[6],
+        }
+        for row in rows
+    ]
+    
 
 def get_client_profile(client_id: str)-> Optional[dict]:
-    pass
+    """fetching the client profile by using the client_id"""
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    row = cursor.execute("""
+                                SELECT client_id, client_name, risk_tolerance, investment_goals, time_horizon, created_at, updated_at 
+                                FROM client_profiles 
+                                WHERE client_id=?
+                                    """,(client_id,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    
+    return {
+        "client_id": row[0],
+        "client_name": row[1],
+        "risk_tolerance": row[2],
+        "investment_goals": row[3],
+        "time_horizon": row[4],
+        "created_at": row[5],
+        "updated_at": row[6],
+    }

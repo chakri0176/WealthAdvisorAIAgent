@@ -3,6 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import uuid
+import re
+from clients.client_memory import (
+    save_client_profile,
+    save_analysis_session,
+    load_client_history,
+    get_client_profile
+)
 
 from agents.graph import run_workflow, resume_workflow
 
@@ -32,6 +39,7 @@ class ReviewRequest(BaseModel):
     thread_id: str
     approved: bool
     feedback: str = ""
+    client_id: str = "default"
 
 # Response model — what we send back
 class WorkflowResponse(BaseModel):
@@ -42,6 +50,13 @@ class WorkflowResponse(BaseModel):
     client_summary: str = ""
     next_agent: str = ""
     human_approved: bool = False
+
+def extract_risk_score(risk_output: str) -> str:
+    """Extract risk score from risk report text."""
+    if not risk_output:
+        return "UNKNOWN"
+    match = re.search(r'\b(LOW|MODERATE|HIGH|CRITICAL)\b', risk_output, re.IGNORECASE)
+    return match.group(1).upper() if match else "UNKNOWN"
     
 @app.get("/health")
 def health():
@@ -58,6 +73,19 @@ def analyze(request: AnalyzeRequest):
             client_id=request.client_id,
             thread_id=thread_id
         )
+        
+        save_client_profile(client_id=request.client_id,
+                            client_name=request.client_name)
+        
+        save_analysis_session(
+            client_id=request.client_id,
+            session_id=thread_id,
+            portfolio_data=request.portfolio_data,
+            risk_output=state.get("risk_output",""),
+            planning_output=state.get("planning_output",""),
+            risk_score=extract_risk_score(state.get("risk_output",""))
+        )
+        
         return WorkflowResponse(
             thread_id=thread_id,
             status="awaiting_review",
@@ -78,6 +106,15 @@ def review(request: ReviewRequest):
             approved=request.approved,
             feedback=request.feedback
         )
+        
+        save_analysis_session(
+            client_id=request.client_id,
+            session_id=request.thread_id,
+            portfolio_data="",
+            client_summary=state.get("client_summary",""),
+            risk_score=extract_risk_score(state.get("risk_output",""))
+        )
+        
         return WorkflowResponse(
             thread_id=request.thread_id,
             status="completed" if state.get("client_summary") else "processing",
