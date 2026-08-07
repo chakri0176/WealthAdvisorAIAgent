@@ -8,7 +8,7 @@
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-0.5.23-purple)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35-red)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![License](https://img.shields.io/badge/License-Proprietary-red)
 
 ---
 
@@ -443,4 +443,22 @@ This project is for educational and informational purposes only. It does not con
 
 ## 📄 License
 
-MIT License — free to use, modify, and distribute with attribution.
+This project uses a **proprietary license** — not open source.
+
+| Use Case | Permission |
+|----------|-----------|
+| Personal learning and study | ✅ Free |
+| Running locally for personal use | ✅ Free |
+| Educational and research purposes | ✅ Free |
+| Contributing via pull requests | ✅ Free |
+| Commercial products or services | ❌ Contact required |
+| SaaS deployment for paying users | ❌ Contact required |
+| White-labeling or reselling | ❌ Contact required |
+| Client work or consulting | ❌ Contact required |
+
+**To request commercial use permission:**
+
+📧 chakravarthi.b167@gmail.com
+🐙 [github.com/chakri0176](https://github.com/chakri0176)
+
+See [LICENSE](./LICENSE) for full terms.
