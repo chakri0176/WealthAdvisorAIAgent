@@ -4,7 +4,6 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data.market_data import get_key_metrics, get_price_history, calculate_portfolio_metrics
-from data.sec_fetcher import get_cik, get_recent_filings, fetch_filing_text
 from data.vector_store import chunk_text, index_document, query
 from config.settings import get_settings
 from dotenv import load_dotenv
@@ -19,15 +18,16 @@ os.environ["GEMINI_MODEL"] = settings.gemini_model
 
 def test_get_key_metrics():
     print("\n--- test_get_key_metrics ---")
-    result = get_key_metrics("AAPL")
+    result = get_key_metrics("TCS")
     print(result)
     assert "ticker" in result
-    assert result["ticker"] == "AAPL"
+    assert result["ticker"] == "TCS.NS"
+    assert result["currency"] == "INR"
     print("✅ PASSED")
 
 def test_get_price_history():
     print("\n--- test_get_price_history ---")
-    df = get_price_history("AAPL")
+    df = get_price_history("TCS")
     print(df.tail(3))
     assert len(df) > 0
     print("✅ PASSED")
@@ -35,9 +35,9 @@ def test_get_price_history():
 def test_calculate_portfolio_metrics():
     print("\n--- test_calculate_portfolio_metrics ---")
     holdings = [
-        {"ticker": "AAPL", "weight": 0.4, "shares": 100},
-        {"ticker": "MSFT", "weight": 0.35, "shares": 50},
-        {"ticker": "GOOGL", "weight": 0.25, "shares": 30},
+        {"ticker": "TCS", "weight": 0.4, "shares": 100},
+        {"ticker": "INFY", "weight": 0.35, "shares": 50},
+        {"ticker": "RELIANCE", "weight": 0.25, "shares": 30},
     ]
     result = calculate_portfolio_metrics(holdings)
     print("Positions:", result["num_positions"])
@@ -46,31 +46,14 @@ def test_calculate_portfolio_metrics():
     assert result["num_positions"] == 3
     print("✅ PASSED")
 
-# ── sec_fetcher tests ─────────────────────────────────────────────────────────
-
-def test_get_cik():
-    print("\n--- test_get_cik ---")
-    cik = get_cik("AAPL")
-    print("CIK:", cik)
-    assert cik == "0000320193"
-    print("✅ PASSED")
-
-def test_get_recent_filings():
-    print("\n--- test_get_recent_filings ---")
-    filings = get_recent_filings("AAPL")
-    print("Filings found:", len(filings))
-    for f in filings:
-        print(f["form"], "-", f["filingDate"])
-    assert len(filings) > 0
-    print("✅ PASSED")
-
-def test_fetch_filing_text():
-    print("\n--- test_fetch_filing_text ---")
-    filings = get_recent_filings("AAPL")
-    text = fetch_filing_text(filings[0]["accessionNumber"], "AAPL")
-    print("Characters fetched:", len(text))
-    print("Preview:", text[:200])
-    assert len(text) > 0
+def test_multiple_indian_stocks():
+    print("\n--- test_multiple_indian_stocks ---")
+    tickers = ["HDFCBANK", "WIPRO", "BAJFINANCE", "ITC", "TATAMOTORS"]
+    for ticker in tickers:
+        result = get_key_metrics(ticker)
+        print(f"{result['ticker']} - {result['company_name']} - ₹{result['current_price']}")
+        assert result["ticker"].endswith(".NS")
+        assert result["currency"] == "INR"
     print("✅ PASSED")
 
 # ── vector_store tests ────────────────────────────────────────────────────────
@@ -87,44 +70,65 @@ def test_chunk_text():
 
 def test_index_and_query():
     print("\n--- test_index_and_query ---")
-    # Fetch filing
-    filings = get_recent_filings("AAPL")
-    text = fetch_filing_text(filings[0]["accessionNumber"], "AAPL")
+
+    # Use sample Indian company text instead of SEC filing
+    sample_text = """
+    Tata Consultancy Services Limited (TCS) Annual Report 2025.
+    TCS is India's largest IT services company by market capitalization.
+    
+    Risk Factors:
+    The company faces risks from client concentration, with top 10 clients
+    contributing approximately 35% of revenue. Currency fluctuation risk
+    is significant as majority of revenue comes from exports in USD and EUR.
+    
+    Regulatory risks include compliance with data protection laws across
+    multiple jurisdictions including GDPR in Europe and proposed PDPB in India.
+    
+    Competition from global IT firms such as Infosys, Wipro, HCL Technologies
+    and international players like Accenture and IBM poses ongoing challenges.
+    
+    The company's revenue grew 8.2% year-on-year to reach ₹2,40,893 crore
+    in FY2025. Net profit margin remained stable at 19.1%.
+    
+    Key risks for investors include:
+    1. Global economic slowdown affecting IT spending
+    2. Talent acquisition and retention challenges
+    3. Cybersecurity and data breach risks
+    4. Geopolitical risks affecting global operations
+    5. Technology disruption from AI and automation
+    """ * 10  # repeat to get enough content to chunk
 
     # Index it
     chunks = index_document(
-        text=text,
-        doc_id="AAPL_10K_2025",
+        text=sample_text,
+        doc_id="TCS_Annual_2025",
         metadata={
-            "ticker": "AAPL",
-            "form_type": "10-K",
-            "filing_date": filings[0]["filingDate"]
+            "ticker": "TCS.NS",
+            "form_type": "Annual Report",
+            "filing_date": "2025-03-31"
         }
     )
     print("Chunks indexed:", chunks)
     assert chunks > 0
 
     # Query it
-    results = query("What are the main risk factors for Apple?")
+    results = query("What are the main risk factors for TCS?")
     print("Results found:", len(results))
     print("Top result preview:", results[0]["text"][:300])
     assert len(results) > 0
     print("✅ PASSED")
 
-
 # ── Run all tests ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("Running WealthAdvisor Data Layer Tests")
+    print("Running WealthAdvisor Data Layer Tests (Indian Stocks)")
     print("=" * 50)
 
     test_get_key_metrics()
     test_get_price_history()
     test_calculate_portfolio_metrics()
-    test_get_cik()
-    test_get_recent_filings()
-    test_fetch_filing_text()
+    test_multiple_indian_stocks()
     test_chunk_text()
     test_index_and_query()
 
