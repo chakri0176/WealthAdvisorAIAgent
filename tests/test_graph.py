@@ -13,7 +13,7 @@ def test_full_workflow():
     print("Step 1: Running workflow...")
     state = run_workflow(
         user_input="Analyze my portfolio risk",
-        portfolio_data="AAPL 40% 100 shares, MSFT 60% 50 shares",
+        portfolio_data="TCS 40% 100 shares at ₹2317, INFY 60% 50 shares at ₹1119",
         client_name="John Smith",
         thread_id=thread_id
     )

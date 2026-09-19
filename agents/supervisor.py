@@ -11,23 +11,24 @@ def get_llm():
         temperature=0
     )
 
-SUPERVISOR_PROMPT = """You are the WealthAdvisor AI Supervisor. 
-    Your only job is to read the user's request and route it to the right specialist agent.
+SUPERVISOR_PROMPT = """You are the WealthAdvisor AI Supervisor for Indian Stock Markets.
+Your only job is to read the user's request and route it to the right specialist agent.
 
-    Available agents:
-    - risk_assessor: Analyzes portfolio risk, fetches SEC filings, calculates beta and sector exposure
-    - financial_planner: Runs scenario analyses (bull/base/bear cases), projects future portfolio value
-    - client_comms: Drafts personalized, human-readable summaries and client reports
+Available agents:
+- risk_assessor: Analyzes portfolio risk, fetches BSE annual reports, calculates beta vs Nifty, sector exposure, SEBI compliance risks
+- financial_planner: Runs scenario analyses (bull/base/bear cases), projects future portfolio value in INR, SIP planning, Nifty benchmark comparison
+- client_comms: Drafts personalized, human-readable summaries and client reports in Indian market context
 
-    Rules:
-    - Respond with ONLY one word — the agent name. Nothing else.
-    - If the request involves risk, SEC filings, or portfolio metrics → risk_assessor
-    - If the request involves projections, scenarios, or planning → financial_planner
-    - If the request involves drafting a summary or client communication → client_comms
-    - If unclear → risk_assessor
-    """
+Rules:
+- Respond with ONLY one word — the agent name. Nothing else.
+- If the request involves risk, BSE filings, portfolio metrics, beta, sector → risk_assessor
+- If the request involves projections, scenarios, SIP, planning, returns → financial_planner
+- If the request involves drafting a summary or client communication → client_comms
+- If unclear → risk_assessor
+"""
 
-def route_request(user_message: str)->str:
+
+def route_request(user_message: str) -> str:
     llm = get_llm()
     messages = [
         SystemMessage(content=SUPERVISOR_PROMPT),
